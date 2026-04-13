@@ -4,19 +4,25 @@
 		<meta charset="UTF-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Ashiwin</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Noto+Serif+Grantha&family=Noto+Serif+Malayalam&family=Noto+Serif+Tamil&family=Noto+Serif+Thai&family=Noto+Naskh+Arabic&display=swap"
+			rel="stylesheet"
+		/>
 		<style>
 			:root {
-				--bg: #fafafa;
-				--text: #121212;
-				--link: #1976d2;
+				--bg: #f7efe1;
+				--text: #3c1124;
+				--link: #702347;
+				--particle: #c95f7b;
 			}
 
-			@media (prefers-color-scheme: dark) {
-				:root {
-					--bg: #121212;
-					--text: #fafafa;
-					--link: #90caf9;
-				}
+			body.dark {
+				--bg: #3c1124;
+				--text: #f7efe1;
+				--link: #c95f7b;
+				--particle: #702347;
 			}
 
 			*,
@@ -34,24 +40,68 @@
 				align-items: center;
 				background: var(--bg);
 				color: var(--text);
-				font-family: sans-serif;
+				font-family:
+					"Palatino Linotype", "Book Antiqua", Palatino, Georgia,
+					serif;
+				transition:
+					background 0.4s,
+					color 0.4s;
+				overflow: hidden;
+			}
+
+			canvas {
+				position: fixed;
+				inset: 0;
+				z-index: 0;
+				pointer-events: none;
 			}
 
 			.container {
+				position: relative;
+				z-index: 1;
 				text-align: center;
 				animation: fadeIn 2s ease-in-out both;
 			}
 
 			h1 {
-				font-size: clamp(1.2rem, 3vw, 2rem);
+				font-size: clamp(1.4rem, 3.5vw, 2.4rem);
 				font-weight: 400;
+				letter-spacing: 0.01em;
 				line-height: 1.5;
+				animation: slideUp 1.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+			}
+
+			.greeting {
+				display: block;
+				font-size: clamp(0.9rem, 1.8vw, 1.1rem);
+				letter-spacing: 0.25em;
+				text-transform: uppercase;
+				opacity: 0.5;
+				font-style: italic;
+				margin-bottom: 0.6em;
+				animation: slideUp 1.6s 0.2s cubic-bezier(0.16, 1, 0.3, 1) both;
 			}
 
 			a {
 				color: var(--link);
 				text-decoration: none;
 				font-weight: 700;
+				position: relative;
+			}
+
+			a::after {
+				content: "";
+				position: absolute;
+				left: 0;
+				bottom: -2px;
+				width: 0;
+				height: 1.5px;
+				background: var(--link);
+				transition: width 0.3s ease;
+			}
+
+			a:hover::after {
+				width: 100%;
 			}
 
 			@keyframes fadeIn {
@@ -63,24 +113,337 @@
 				}
 			}
 
+			@keyframes slideUp {
+				from {
+					transform: translateY(30px);
+					opacity: 0;
+				}
+				to {
+					transform: translateY(0);
+					opacity: 1;
+				}
+			}
+
+			.greeting-line {
+				display: block;
+				margin-bottom: 0.6em;
+			}
+
+			ruby {
+				display: inline-flex;
+				flex-direction: column-reverse;
+				align-items: center;
+				vertical-align: bottom;
+				line-height: 1;
+			}
+
+			ruby rt {
+				display: block;
+				font-size: 0.55em;
+				letter-spacing: 0.2em;
+				text-transform: uppercase;
+				opacity: 0.8;
+				font-style: italic;
+				font-family:
+					"Palatino Linotype", "Book Antiqua", Palatino, Georgia,
+					serif;
+				text-align: center;
+			}
+
+			.native-text {
+				font-family:
+					"Noto Serif Grantha", "Noto Serif Malayalam",
+					"Noto Serif Tamil", "Noto Serif Thai", "Noto Naskh Arabic",
+					serif;
+				font-size: clamp(1.9rem, 4vw, 2.8rem);
+				line-height: 1.4;
+			}
+
 			@media (prefers-reduced-motion: reduce) {
-				.container {
+				.container,
+				h1,
+				.greeting {
 					animation: none;
+				}
+			}
+
+			.mobile-break {
+				display: none;
+			}
+
+			@media (max-width: 600px) {
+				.mobile-break {
+					display: inline;
 				}
 			}
 		</style>
 	</head>
 	<body>
+		<canvas id="bg"></canvas>
+
 		<div class="container">
 			<h1>
-				Welcome to
+				<span class="greeting-line">
+					<ruby id="greeting">
+						<span
+							id="greeting-text"
+							class="native-text"
+							lang="sa-Gran"
+							>𑌨𑌮𑌸𑍍𑌕𑌾𑌰𑌂</span
+						>
+						<rt id="greeting-label" lang="en">Namaskaram</rt>
+					</ruby>
+				</span>
+				Welcome to <br class="mobile-break" />
 				<a
 					href="https://github.com/ashiwin"
 					target="_blank"
 					rel="noopener"
-					>Ashiwin's GitHub page</a
+				>
+					Ashiwin's GitHub page</a
 				>.
 			</h1>
 		</div>
+
+		<script type="importmap">
+			{
+				"imports": {
+					"three": "https://cdn.jsdelivr.net/npm/three@0.175.0/build/three.module.js"
+				}
+			}
+		</script>
+
+		<script type="module">
+			import * as THREE from "three";
+
+			/* theme */
+			const getColour = () => {
+				const style = getComputedStyle(document.body);
+				return new THREE.Color(
+					style.getPropertyValue("--particle").trim(),
+				);
+			};
+
+			/* scene */
+			const canvas = document.getElementById("bg");
+			const renderer = new THREE.WebGLRenderer({
+				canvas,
+				antialias: true,
+				alpha: true,
+			});
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+			const scene = new THREE.Scene();
+			const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+			camera.position.z = 80;
+
+			/* particles */
+			const COUNT = 120;
+			const positions = new Float32Array(COUNT * 3);
+			const velocities = [];
+
+			for (let i = 0; i < COUNT; i++) {
+				const spread = 100;
+				positions[i * 3] = (Math.random() - 0.5) * spread;
+				positions[i * 3 + 1] = (Math.random() - 0.5) * spread;
+				positions[i * 3 + 2] = (Math.random() - 0.5) * 20;
+				velocities.push(
+					(Math.random() - 0.5) * 0.035,
+					(Math.random() - 0.5) * 0.035,
+					0,
+				);
+			}
+
+			const geo = new THREE.BufferGeometry();
+			geo.setAttribute(
+				"position",
+				new THREE.BufferAttribute(positions, 3),
+			);
+
+			const mat = new THREE.PointsMaterial({
+				size: 0.9,
+				color: getColour(),
+				transparent: true,
+				opacity: 0.75,
+				sizeAttenuation: true,
+			});
+
+			const points = new THREE.Points(geo, mat);
+			scene.add(points);
+
+			/* connection lines */
+			const lineMat = new THREE.LineBasicMaterial({
+				color: getColour(),
+				transparent: true,
+				opacity: 0.25,
+			});
+
+			const lineGeo = new THREE.BufferGeometry();
+			const maxLines = (COUNT * (COUNT - 1)) / 2;
+			const linePositions = new Float32Array(maxLines * 6);
+			lineGeo.setAttribute(
+				"position",
+				new THREE.BufferAttribute(linePositions, 3),
+			);
+			const lineSegments = new THREE.LineSegments(lineGeo, lineMat);
+			scene.add(lineSegments);
+
+			const DIST_THRESHOLD = 18;
+
+			/* resize */
+			function resize() {
+				const w = window.innerWidth;
+				const h = window.innerHeight;
+				renderer.setSize(w, h);
+				camera.aspect = w / h;
+				camera.updateProjectionMatrix();
+			}
+			resize();
+			window.addEventListener("resize", resize);
+
+			/* mouse parallax */
+			const mouse = { x: 0, y: 0 };
+			window.addEventListener("mousemove", (e) => {
+				mouse.x = (e.clientX / window.innerWidth - 0.5) * 0.04;
+				mouse.y = (e.clientY / window.innerHeight - 0.5) * 0.04;
+			});
+
+			/* animate */
+			const reducedMotion = window.matchMedia(
+				"(prefers-reduced-motion: reduce)",
+			).matches;
+
+			function animate() {
+				requestAnimationFrame(animate);
+
+				if (!reducedMotion) {
+					const pos = geo.attributes.position.array;
+					const half = 52;
+
+					for (let i = 0; i < COUNT; i++) {
+						pos[i * 3] += velocities[i * 3];
+						pos[i * 3 + 1] += velocities[i * 3 + 1];
+
+						if (pos[i * 3] > half || pos[i * 3] < -half)
+							velocities[i * 3] *= -1;
+						if (pos[i * 3 + 1] > half || pos[i * 3 + 1] < -half)
+							velocities[i * 3 + 1] *= -1;
+					}
+					geo.attributes.position.needsUpdate = true;
+
+					/* connections */
+					let lineIdx = 0;
+					for (let a = 0; a < COUNT; a++) {
+						for (let b = a + 1; b < COUNT; b++) {
+							const dx = pos[a * 3] - pos[b * 3];
+							const dy = pos[a * 3 + 1] - pos[b * 3 + 1];
+							const dist = Math.sqrt(dx * dx + dy * dy);
+							if (
+								dist < DIST_THRESHOLD &&
+								lineIdx < maxLines - 1
+							) {
+								linePositions[lineIdx * 6] = pos[a * 3];
+								linePositions[lineIdx * 6 + 1] = pos[a * 3 + 1];
+								linePositions[lineIdx * 6 + 2] = 0;
+								linePositions[lineIdx * 6 + 3] = pos[b * 3];
+								linePositions[lineIdx * 6 + 4] = pos[b * 3 + 1];
+								linePositions[lineIdx * 6 + 5] = 0;
+								lineIdx++;
+							}
+						}
+					}
+					lineGeo.setDrawRange(0, lineIdx * 2);
+					lineGeo.attributes.position.needsUpdate = true;
+
+					/* subtle parallax */
+					scene.rotation.y += (mouse.x - scene.rotation.y) * 0.05;
+					scene.rotation.x += (mouse.y - scene.rotation.x) * 0.05;
+				}
+
+				renderer.render(scene, camera);
+			}
+			animate();
+
+			/* theme sync */
+			function syncColour() {
+				const c = getColour();
+				mat.color.set(c);
+				lineMat.color.set(c);
+			}
+
+			const mq = window.matchMedia("(prefers-color-scheme: dark)");
+			function applyTheme(e) {
+				document.body.classList.toggle("dark", e.matches);
+				syncColour();
+			}
+			applyTheme(mq);
+			mq.addEventListener("change", applyTheme);
+
+			/* greeting text */
+			const greetings = [
+				{
+					text: "𑌨𑌮𑌸𑍍𑌕𑌾𑌰𑌂",
+					label: "Namaskaram",
+					lang: "sa-Gran",
+					rubyLang: "en",
+				},
+				{
+					text: "Pok, pok, pok",
+					label: "\xa0",
+					lang: "tmw",
+					rubyLang: "tmw",
+				},
+				{
+					text: "നമസ്കാരം",
+					label: "Namaskaram",
+					lang: "ml",
+					rubyLang: "en",
+				},
+				{
+					text: "வணக்கம்",
+					label: "Vanakkam",
+					lang: "ta",
+					rubyLang: "en",
+				},
+				{
+					text: "سلامت سجاحترا",
+					label: "Selamat Sejahtera",
+					lang: "ms-Arab",
+					rubyLang: "ms",
+				},
+				{
+					text: "สวัสดีครับ",
+					label: "Sawasdee khrab",
+					lang: "th",
+					rubyLang: "en",
+				},
+				{
+					text: "Hello, world!",
+					label: "\xa0",
+					lang: "en",
+					rubyLang: "en",
+				},
+			];
+
+			const textEl = document.getElementById("greeting-text");
+			const labelEl = document.getElementById("greeting-label");
+
+			/* sequential greeting via localStorage */
+			const rawIndex = parseInt(
+				localStorage.getItem("greetingIndex") ?? "0",
+				10,
+			);
+			const currentIndex = isNaN(rawIndex) ? 0 : rawIndex;
+			localStorage.setItem(
+				"greetingIndex",
+				String((currentIndex + 1) % greetings.length),
+			);
+			const displayedGreeting = greetings[currentIndex];
+
+			textEl.textContent = displayedGreeting.text;
+			labelEl.textContent = displayedGreeting.label;
+			textEl.setAttribute("lang", displayedGreeting.lang);
+			labelEl.setAttribute("lang", displayedGreeting.rubyLang);
+		</script>
 	</body>
 </html>
